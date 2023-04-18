@@ -117,15 +117,56 @@ public int lengthOfLongestSubstring(String s) {
 
 
 
-## TODO：5. 最长回文子串
+## 5. 最长回文子串
 
 ### 暴力法
 
-
+双重循环，枚举所有的字串，然后判断是不是回文串
 
 ### 动态规划
 
 
+
+### 中心拓展法
+
+从两种边界条件出发，不断向两边拓展，看是不是回文串，同时维护最大长度以及最大回文串的起始位置
+
+两种边界条件就是：
+
+- 单个字符，一定是回文串
+- 两个字符，两者相等的时候才认为是回文串
+
+对于每一个位置，都通过中心拓展函数去向两端拓展判断是不是回文串，返回本次拓展得到的回文串的长度。
+
+主函数中维护回文串长度的最大值
+
+```java
+ // 5.最长回文子串
+public String longestPalindrome(String s) {
+    if(s == null || s.length() == 0){
+        return s;
+    }
+    int start = 0,maxLen = 0;
+    for(int i=0;i<s.length();i++){
+        int len1 = centerGrow(s,i,i);
+        int len2 = centerGrow(s,i,i+1);
+        int len = Math.max(len1,len2);
+        if(len > maxLen){
+            maxLen = len;
+            start = i - (len - 1)/2;
+        }
+    }
+    return s.substring(start,start + maxLen);
+}
+
+public int centerGrow(String s,int left,int right){
+    while(left >= 0 && right < s.length() && s.charAt(left) == s.charAt(right)){
+        left--;
+        right++;
+    }
+    return right - left - 1;
+}
+```
 
 ## 6. N 字形变换
 
@@ -544,9 +585,59 @@ public void reverse(int[] nums, int start) {
 
 
 
-## TODO：33. 搜索旋转排序数组
+## 33. 搜索旋转排序数组
+
+对于已经排序的数组的查找通常都可以使用二分查找实现。
+
+对于本题，通过二分找到中间位置，那么这个中间位置的左侧或者右侧一定有一个是有序的
+
+如果是左侧为有序数组，也就是nums[0] < nums[mid] ，就说明左侧整体是有序的（因为对于发生了旋转的数组，那么nums[0]一定大于最右边的元素）。如果不满足nums[0] < nums[mid] 就说明mid右侧的数组是有序的
 
 
+
+对于mid左侧有序的情况，就要判断target是不是在mid左边，比较条件就是nums[0] <= target <= nums[mid]
+
+如果满足就移动right，不满足就移动left
+
+对于mid右侧有序的情况，就要判断target是不是在mid右边，比较条件就是
+
+nums[mid] <= target <= nums[nums.lenght-1]，满足就移动left，不满足就移动right
+
+
+
+对于二分查找，大体的框架很好写，就是很多的等号条件比较难判断
+
+
+
+```java
+// 33. 搜索旋转排序数组
+public int search(int[] nums, int target) {
+    int left = 0, right = nums.length-1;
+    while(left <= right){
+        int mid = (left + right) >> 1;
+        // 命中就直接返回
+        if(nums[mid] == target){
+            return mid;
+        }
+        // 左侧有序
+        if(nums[0] <= nums[mid]){
+            // 在中点左侧部分
+            if(target >= nums[0] && target <= nums[mid]){
+                right = mid - 1;
+            }else{
+                left = mid + 1;
+            }
+        }else{
+            if(target >= nums[mid] && target <= nums[nums.length - 1]){
+                left = mid + 1;
+            }else{
+                right = mid - 1;
+            }
+        }
+    }
+    return -1;
+}
+```
 
 
 
@@ -554,17 +645,141 @@ public void reverse(int[] nums, int start) {
 
 
 
+有一种简单的写法就是先通过二分找到其中一个target的位置，然后从这个位置向两端拓展。这种方式的时间复杂度并不稳定，如果整个数组都是target，那么时间都就很高，达到了O(n)
+
+所以需要通过二分查找重复元素的左边界和右边界
+
+想法就是在nums[mid]命中target的时候，判断是不是左右边界，如果不是就继续二分，如果是就可以返回
+
+
+
+```java
+// 34.在排序数组中查找元素的第一个和最后一个位置
+public int[] searchRange(int[] nums, int target){
+    int[] ans = new int[]{-1,-1};
+    if(nums.length == 0){
+        return ans;
+    }
+    int left = rangeSearch(nums,0,nums.length-1,target,true);
+    int right = rangeSearch(nums,0,nums.length-1,target,false);
+    if(left == Integer.MIN_VALUE || right == Integer.MIN_VALUE){
+        return ans;
+    }
+    ans[0] = left;
+    ans[1] = right;
+    return ans;
+}
+public static int rangeSearch(int[] arr,int start,int end,int target,boolean isLeft){
+    if(arr.length == 0){
+        return Integer.MIN_VALUE;
+    }
+    int left = start,right = end;
+    while(left <= right){
+        int mid = (right - left)/2 + left;
+        // nums[mid]命中了target，还需要考虑是找左边界还是找右边界
+        if(arr[mid] == target){
+            if(isLeft == true && mid>0 && arr[mid-1] == arr[mid]){
+                right = mid-1;
+            }else if(isLeft == false && mid<end && arr[mid+1] == arr[mid]){
+                left = mid+1;
+            }else{
+                return mid;
+            }
+        }else if(arr[mid] > target){
+            right = mid-1;
+        }else{
+            left =  mid + 1;
+        }
+    }
+    return Integer.MIN_VALUE;
+}
+```
+
 
 
 ## TODO：39. 组合总和
 
 
 
-## TODO：46. 全排列
+## 46. 全排列
+
+回溯法，每一次添加一个元素，并标记该元素已经访问了。进行递归。递归结束要撤销访问标记，撤销访问，同时将元素从已有路径中移除。
+
+在添加结果集的时候需要注意new一个LinkedList，如果不new的话，后面的操作会影响已经添加的数据，这一点还困惑了我一会！！
+
+```java
+// 46.全排列
+public List<List<Integer>> res46 = new ArrayList<>();
+public List<List<Integer>> permute(int[] nums) {
+    backTrackFor46(nums,new boolean[nums.length],new LinkedList<>());
+    System.out.println(res46);
+    return res46;
+}
+
+public void backTrackFor46(int[] nums,boolean[] isVisited,LinkedList<Integer> list){
+    // 一条路径
+    if(list.size() == nums.length){
+        //System.out.println(list);
+        // 添加到结果集
+        res46.add(new LinkedList(list));
+        //System.out.println(res46);
+        return;
+    }
+    for(int i=0;i<nums.length;i++){
+        // 已经访问过的店就不用重复访问了
+        if(isVisited[i]){
+            continue;
+        }
+        isVisited[i] = true;
+        list.addLast(nums[i]);
+
+        backTrackFor46(nums,isVisited,list);
+        list.removeLast();
+        isVisited[i] =false;
+    }
+}
+```
 
 
 
 ## TODO：48. 旋转图像
+
+
+
+## 124. 二叉树中的最大路径和
+
+dfs，对于每一个节点，都计算以该节点为根节点的时候，路径的长度。计算方式就是分别计算两个子节点返回的路径长度，然后与当前节点的值相加，并于返回结果比较，取其中最大的值。
+
+在返回值的时候，需要选择左子树或者右子树其中的一个分支形成一条没有分叉的路径，该路径的值最大
+
+```java
+int maxSum = Integer.MIN_VALUE;
+
+public int maxPathSum(TreeNode root) {
+    maxGain(root);
+    return maxSum;
+}
+
+public int maxGain(TreeNode node) {
+    if (node == null) {
+        return 0;
+    }
+    // 递归计算左右子节点的最大贡献值
+    // 只有在最大贡献值大于 0 时，才会选取对应子节点
+    int leftGain = Math.max(maxGain(node.left), 0);
+    int rightGain = Math.max(maxGain(node.right), 0);
+
+    // 节点的最大路径和取决于该节点的值与该节点的左右子节点的最大贡献值
+    int priceNewpath = node.val + leftGain + rightGain;
+
+    // 更新答案
+    maxSum = Math.max(maxSum, priceNewpath);
+
+    // 返回节点的最大贡献值
+    return node.val + Math.max(leftGain, rightGain);
+}
+
+```
 
 
 
